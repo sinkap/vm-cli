@@ -8,17 +8,32 @@ MAINPID=$(pgrep -f ${QEMU})
 VCPU_CORES="10 42 11 43"
 OTHER_CORES="12,13,44,45"
 QTHREADS="-q ${OTHER_CORES}"
+WATCH="no"
 
-echo ${MAINPID}
-#sudo qemu-affinity $MAINPID -p "${OTHER_CORES}" -i *:"${OTHER_CORES}" -q "${OTHER_CORES}" -w *:"${OTHER_CORES}" -k ${VCPU_CORES}
-sudo cpupower frequency-set --governor performance
+echo "qemu_pid=${MAINPID}"
+echo "setting cpufreq governor to performance"
+sudo cpupower frequency-set --governor performance &> /dev/null
 
-if (( $# == 1 )); then
-	if [[ "$1" == "-q" ]]; then
+while getopts 'qw' OPTION; do
+	case "$OPTION" in
+	q)
 		QTHREADS=""
-		exit 0
-	fi
-fi
+		;;
+	w)
+		WATCH="yes"
+		;;
+	?)
+		echo "script usage: $(basename \$0) [-q] [-w]" >&2
+		exit 1
+		;;
+  esac
+done
+
+shift "$(($OPTIND -1))"
+
 
 sudo qemu-affinity $MAINPID -p "${OTHER_CORES}" ${QTHREADS} -i *:"${OTHER_CORES}" -w *:"${OTHER_CORES}" -k ${VCPU_CORES}
-watch  ps -T -o pid,psr,comm -p ${MAINPID}
+
+if [[ "${WATCH}" == "yes" ]]; then
+	watch  ps -T -o pid,psr,comm -p ${MAINPID}
+fi
