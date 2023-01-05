@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+
+QEMU="qemu-system-x86_64"
+
+MAINPID=$(pgrep -f ${QEMU})
+VCPU_CORES="10 42 11 43"
+OTHER_CORES="12,13,44,45"
+QTHREADS="-q ${OTHER_CORES}"
+
+echo ${MAINPID}
+#sudo qemu-affinity $MAINPID -p "${OTHER_CORES}" -i *:"${OTHER_CORES}" -q "${OTHER_CORES}" -w *:"${OTHER_CORES}" -k ${VCPU_CORES}
+sudo cpupower frequency-set --governor performance
+
+if (( $# == 1 )); then
+	if [[ "$1" == "-q" ]]; then
+		QTHREADS=""
+		exit 0
+	fi
+fi
+
+sudo qemu-affinity $MAINPID -p "${OTHER_CORES}" ${QTHREADS} -i *:"${OTHER_CORES}" -w *:"${OTHER_CORES}" -k ${VCPU_CORES}
+watch  ps -T -o pid,psr,comm -p ${MAINPID}

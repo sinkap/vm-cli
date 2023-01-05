@@ -1,0 +1,47 @@
+#!/bin/bash
+
+IMAGE="${HOME}/debian.img"
+KERNEL="${HOME}/projects/linux/arch/x86_64/boot/bzImage"
+# KERNEL="${HOME}/projects/ubuntu/hirsute/arch/x86_64/boot/bzImage"
+# KERNEL="${HOME}/projects/ubuntu/hirsute/debian/build/build-generic/arch/x86_64/boot/bzImage"
+
+
+
+# QEMU="${HOME}/projects/qemu/build/qemu-system-x86_64"
+QEMU="qemu-system-x86_64"
+BACKGROUND="-nographic"
+SERIAL="-serial mon:stdio"
+
+if (( $# == 1 )); then
+
+	if [[ "$1" == "-q" ]]; then
+		BACKGROUND="-daemonize"
+		SERIAL="-display none"
+	else
+		KERNEL="$1"
+	fi
+fi
+
+echo ${KERNEL}
+
+
+"${QEMU}" \
+	"${BACKGROUND}" \
+	-enable-kvm \
+	-s -machine accel=kvm \
+	-smp cores=4 \
+	-cpu host,+topoext \
+	-name kps-vm,debug-threads=on \
+	-device e1000,netdev=net0 \
+	-netdev user,id=net0,hostfwd=tcp::5555-:22 \
+	-append console="ttyS0,115200 root=/dev/sda rw nokaslr systemd.unit=multi-user.target isolcpus=2,3" \
+	-m 4G \
+	-drive if=none,id=hd,file="${IMAGE}",format=raw \
+	-device virtio-scsi-pci,id=scsi \
+	-device scsi-hd,drive=hd \
+	-device virtio-rng-pci,max-bytes=1024,period=1000 \
+	-qmp tcp:localhost:4444,server,nowait \
+	${SERIAL} \
+	-kernel ${KERNEL}
+
+#	-smp sockets=1,cores=4,threads=2 \
