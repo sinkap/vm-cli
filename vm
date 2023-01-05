@@ -1,29 +1,29 @@
 #!/bin/bash
 
-IMAGE="${HOME}/debian.img"
-KERNEL="${HOME}/projects/linux/arch/x86_64/boot/bzImage"
-# KERNEL="${HOME}/projects/ubuntu/hirsute/arch/x86_64/boot/bzImage"
-# KERNEL="${HOME}/projects/ubuntu/hirsute/debian/build/build-generic/arch/x86_64/boot/bzImage"
-
-
-
-# QEMU="${HOME}/projects/qemu/build/qemu-system-x86_64"
+IMAGE="${VM_CLI_IMAGE_PATH}"
+KERNEL="${VM_CLI_KERNEL_PATH}"
 QEMU="qemu-system-x86_64"
 BACKGROUND="-nographic"
 SERIAL="-serial mon:stdio"
 
-if (( $# == 1 )); then
-
-	if [[ "$1" == "-q" ]]; then
+while getopts 'qk:' OPTION; do
+	case "$OPTION" in
+	q)
 		BACKGROUND="-daemonize"
 		SERIAL="-display none"
-	else
-		KERNEL="$1"
-	fi
-fi
+		;;
+	k)
+		KERNEL="$OPTARG"
+		;;
+	?)
+		echo "script usage: $(basename \$0) [-q] [-k <kernel_path>]" >&2
+		exit 1
+		;;
+  esac
+done
+shift "$(($OPTIND -1))"
 
-echo ${KERNEL}
-
+echo "kernel_path=${KERNEL:?} image_path=${IMAGE:?}"
 
 "${QEMU}" \
 	"${BACKGROUND}" \
